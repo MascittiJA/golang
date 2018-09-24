@@ -64,18 +64,13 @@ func check(e error) {
 	}
 }
 
-func process_chunk(chunk []string, result chan partial_information, percentil chan type_ammount, validREG *regexp.Regexp) {
+func process_chunk(chunk []string, result chan partial_information, percentil chan type_ammount) {
 	amount_by_type := make(map[string]accum)
 	quantity_by_type_user := make(map[type_user]int)
 	max_users_by_type := make(map[string]user)
 	means_by_type := make(map[string]sliced_mean)
 
 	for _, line := range chunk {
-		ok := validREG.MatchString(line)
-		if !ok {
-			continue
-		}
-
 		// Obteniendo datos
 		split := strings.Split(line, " ")
 		next_user := strings.Split(split[0][1:len(split[0])-1], ":")[1]
@@ -193,23 +188,16 @@ func main() {
 	count := 0
 
 	// Divido el input de entrada para ir procesando por partes
-	for {
-		tok := scanner.Scan()
-		if !tok {
-			break
-		}
-
+	tok := scanner.Scan()
+	for tok {
 		var chunk []string
-		i := 0
-
-		for tok {
-			chunk = append(chunk, scanner.Text())
-			i++
-			if i < chunk_size {
-				tok = scanner.Scan()
-			} else {
-				tok = false
+		for i := 0; i < chunk_size && tok; i++ {
+			line := scanner.Text()
+			line_ok := validREG.MatchString(line)
+			if line_ok {
+				chunk = append(chunk, line)
 			}
+			tok = scanner.Scan()
 		}
 
 		if len(chunk) > 0 {
@@ -217,7 +205,7 @@ func main() {
 			wg.Add(1)
 			go func() {
 				//				fmt.Println("CHUNK")
-				process_chunk(chunk, results_chann, percentil_chann, validREG)
+				process_chunk(chunk, results_chann, percentil_chann)
 				wg.Done()
 			}()
 		}
